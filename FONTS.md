@@ -9,3 +9,4 @@ Autor: Fabio Casati
 Procedència: Wikimedia Commons. Vídeo publicat originalment a Youtube.
 Enllaç: https://commons.wikimedia.org/wiki/File%3AVideo_360%C2%B0._Timelapse._Bled_Lake_in_Slovenia..webm
 Llicència: Creative Commons Reconeixement 3.0 (CC BY 3.0)
+Adaptació del recurs original: conversió del format WebM a MP4 mitjançant HandBrake per facilitar la reproducció amb A-Frame.
