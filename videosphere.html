@@ -1,0 +1,536 @@
+
+<!DOCTYPE html>
+<html lang="ca">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Llac de Bled | Explorant la natura</title>
+
+  <script src="https://aframe.io/releases/0.6.1/aframe.min.js"></script>
+
+  <script>
+    // Informació del llac de Bled
+    var dadesBled = {
+      llac: {
+        titol: 'El llac',
+        text: "El llac de Bled es troba al nord-oest d'Eslovènia. Té una superfície aproximada d'1,44 km² i una profunditat màxima de 30,6 metres. Al centre hi ha una petita illa natural amb una església."
+      },
+
+      vegetacio: {
+        titol: 'La vegetació',
+        text: "Al voltant del llac hi ha zones boscoses i vegetació aquàtica. A les ribes també hi creixen plantes i canyissars. Aquesta vegetació forma part de l'ecosistema i ofereix refugi a diferents organismes."
+      },
+
+      turisme: {
+        titol: 'El turisme',
+        text: "Un camí d'uns sis quilòmetres permet passejar al voltant del llac i observar el paisatge. També es pot arribar a l'illa amb les embarcacions tradicionals pletna i visitar el castell de Bled, situat sobre un penya-segat."
+      }
+    };
+
+    function escriureLinies(ctx, text, x, y, ample, salt) {
+      var paraules = text.split(' ');
+      var linia = '';
+
+      for (var i = 0; i < paraules.length; i++) {
+        var prova = linia
+          ? linia + ' ' + paraules[i]
+          : paraules[i];
+
+        if (
+          ctx.measureText(prova).width > ample &&
+          linia !== ''
+        ) {
+          ctx.fillText(linia, x, y);
+          y += salt;
+          linia = paraules[i];
+        } else {
+          linia = prova;
+        }
+      }
+
+      if (linia !== '') {
+        ctx.fillText(linia, x, y);
+      }
+    }
+
+    AFRAME.registerComponent('cartell-bled', {
+      schema: {
+        tipus: {default: 'boto'},
+        etiqueta: {default: ''},
+        tema: {default: 'llac'}
+      },
+
+      update: function () {
+        var anterior = this.el.getObject3D('mesh');
+
+        if (anterior) {
+          anterior.material.map.dispose();
+          anterior.material.dispose();
+          anterior.geometry.dispose();
+          this.el.removeObject3D('mesh');
+        }
+
+        var tipus = this.data.tipus;
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+
+        var ample3D;
+        var alt3D;
+
+        if (tipus === 'informacio') {
+          canvas.width = 1024;
+          canvas.height = 620;
+
+          ample3D = 2.8;
+          alt3D = 1.70;
+
+          var info = dadesBled[this.data.tema];
+
+          // Fons del panell
+          ctx.fillStyle = '#F2EFE7';
+          ctx.fillRect(0, 0, 1024, 620);
+
+          // Identificació de l'experiència
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#68796D';
+          ctx.font = 'bold 25px Arial';
+
+          ctx.fillText(
+            'EXPLORANT LA NATURA / 02',
+            70,
+            90
+          );
+
+          // Títol
+          ctx.fillStyle = '#283C32';
+          ctx.font = 'normal 70px Georgia';
+
+          ctx.fillText(info.titol, 70, 195);
+
+          // Línia separadora
+          ctx.fillStyle = '#B8C4B6';
+          ctx.fillRect(70, 230, 884, 3);
+
+          // Descripció
+          ctx.fillStyle = '#536156';
+          ctx.font = '35px Arial';
+
+          escriureLinies(
+            ctx,
+            info.text,
+            70,
+            310,
+            875,
+            55
+          );
+
+        } else {
+          // Botons de l'escena
+          canvas.width = 1024;
+          canvas.height = 256;
+
+          if (tipus === 'iniciar') {
+            ample3D = 1.65;
+            alt3D = 0.42;
+          } else if (tipus === 'navegacio') {
+            ample3D = 1.55;
+            alt3D = 0.34;
+          } else {
+            ample3D = 0.95;
+            alt3D = 0.34;
+          }
+
+          var fosc =
+            tipus === 'iniciar' ||
+            tipus === 'principal';
+
+          ctx.fillStyle = fosc
+            ? '#283C32'
+            : '#F2EFE7';
+
+          ctx.fillRect(0, 0, 1024, 256);
+
+          ctx.fillStyle = fosc
+            ? '#F2EFE7'
+            : '#283C32';
+
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.font = 'bold 58px Arial';
+
+          ctx.fillText(
+            this.data.etiqueta,
+            512,
+            130
+          );
+        }
+
+        var textura = new THREE.Texture(canvas);
+        textura.needsUpdate = true;
+        textura.minFilter = THREE.LinearFilter;
+        textura.magFilter = THREE.LinearFilter;
+
+        var geometria = new THREE.PlaneGeometry(
+          ample3D,
+          alt3D
+        );
+
+        var material = new THREE.MeshBasicMaterial({
+          map: textura,
+          side: THREE.DoubleSide
+        });
+
+        this.el.setObject3D(
+          'mesh',
+          new THREE.Mesh(geometria, material)
+        );
+      },
+
+      remove: function () {
+        var malla = this.el.getObject3D('mesh');
+
+        if (malla) {
+          malla.material.map.dispose();
+          malla.material.dispose();
+          malla.geometry.dispose();
+          this.el.removeObject3D('mesh');
+        }
+      }
+    });
+  </script>
+</head>
+
+<body>
+
+  <a-scene>
+
+    <!-- Vídeo panoràmic -->
+    <a-assets>
+      <video
+        id="video360"
+        src="Video_360.mp4"
+        preload="auto"
+        loop
+        muted
+        playsinline
+        webkit-playsinline>
+      </video>
+    </a-assets>
+
+    <a-videosphere
+      src="#video360"
+      radius="10">
+    </a-videosphere>
+
+
+    <!-- Pantalla inicial -->
+    <a-entity
+      id="inici-vr"
+      position="0 1.6 -3">
+
+      <a-entity
+        position="0 0.57 0"
+        cartell-bled="tipus: navegacio; etiqueta: LLAC DE BLED / 02">
+      </a-entity>
+
+      <a-entity
+        id="boto-iniciar"
+        class="interactiu"
+        position="0 0 0"
+        cartell-bled="tipus: iniciar; etiqueta: REPRODUEIX 360°">
+      </a-entity>
+
+    </a-entity>
+
+
+    <!-- Menú principal -->
+    <a-entity
+      id="menu-vr"
+      position="0 1.35 -3"
+      visible="false">
+
+      <a-entity
+        id="boto-pausa"
+        class="interactiu"
+        position="-0.53 0.20 0"
+        cartell-bled="tipus: principal; etiqueta: PAUSA">
+      </a-entity>
+
+      <a-entity
+        id="boto-reiniciar"
+        class="interactiu"
+        position="0.53 0.20 0"
+        cartell-bled="tipus: boto; etiqueta: REINICIA">
+      </a-entity>
+
+      <a-entity
+        id="boto-informacio"
+        class="interactiu"
+        position="-0.53 -0.24 0"
+        cartell-bled="tipus: boto; etiqueta: INFORMACIÓ">
+      </a-entity>
+
+      <a-entity
+        id="boto-blue"
+        class="interactiu"
+        position="0.53 -0.24 0"
+        cartell-bled="tipus: boto; etiqueta: 01 — BLUE GROTTO →">
+      </a-entity>
+
+    </a-entity>
+
+
+    <!-- Panell informatiu -->
+    <a-entity
+      id="panell-vr"
+      visible="false">
+
+      <a-entity
+        id="info-llac"
+        cartell-bled="tipus: informacio; tema: llac">
+      </a-entity>
+
+      <a-entity
+        id="info-vegetacio"
+        visible="false"
+        cartell-bled="tipus: informacio; tema: vegetacio">
+      </a-entity>
+
+      <a-entity
+        id="info-turisme"
+        visible="false"
+        cartell-bled="tipus: informacio; tema: turisme">
+      </a-entity>
+
+      <!-- Selecció de les seccions -->
+      <a-entity
+        id="tab-llac"
+        class="interactiu"
+        position="-1.0 -1.08 0.06"
+        cartell-bled="tipus: boto; etiqueta: EL LLAC">
+      </a-entity>
+
+      <a-entity
+        id="tab-vegetacio"
+        class="interactiu"
+        position="0 -1.08 0.06"
+        cartell-bled="tipus: boto; etiqueta: VEGETACIÓ">
+      </a-entity>
+
+      <a-entity
+        id="tab-turisme"
+        class="interactiu"
+        position="1.0 -1.08 0.06"
+        cartell-bled="tipus: boto; etiqueta: TURISME">
+      </a-entity>
+
+      <a-entity
+        id="boto-tancar"
+        class="interactiu"
+        position="0 -1.52 0.06"
+        cartell-bled="tipus: principal; etiqueta: TANCA">
+      </a-entity>
+
+    </a-entity>
+
+
+    <!-- Càmera i cursor -->
+    <a-camera
+      id="camera"
+      position="0 1.6 0">
+
+      <a-cursor
+        id="cursor"
+        position="0 0 -1"
+        fuse="true"
+        fuse-timeout="1400"
+        raycaster="objects: .interactiu; far: 12"
+        geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.022"
+        material="color: #FFFFFF; shader: flat; depthTest: false">
+      </a-cursor>
+
+    </a-camera>
+
+  </a-scene>
+
+
+  <script>
+    // Elements de l'escena
+    var video = document.querySelector('#video360');
+    var camera = document.querySelector('#camera');
+
+    var inici = document.querySelector('#inici-vr');
+    var menu = document.querySelector('#menu-vr');
+    var panell = document.querySelector('#panell-vr');
+
+    var botoIniciar =
+      document.querySelector('#boto-iniciar');
+
+    var botoPausa =
+      document.querySelector('#boto-pausa');
+
+    var botoReiniciar =
+      document.querySelector('#boto-reiniciar');
+
+    var botoInformacio =
+      document.querySelector('#boto-informacio');
+
+    var botoBlue =
+      document.querySelector('#boto-blue');
+
+    var botoTancar =
+      document.querySelector('#boto-tancar');
+
+    var seccions = {
+      llac: document.querySelector('#info-llac'),
+      vegetacio: document.querySelector('#info-vegetacio'),
+      turisme: document.querySelector('#info-turisme')
+    };
+
+
+    // Actualitzar el botó segons l'estat del vídeo
+    function actualitzarPausa() {
+      botoPausa.setAttribute(
+        'cartell-bled',
+        'tipus: principal; etiqueta: ' +
+        (video.paused ? 'REPRÈN' : 'PAUSA')
+      );
+    }
+
+
+    // Iniciar o reprendre la reproducció
+    function reproduir() {
+      video.muted = true;
+
+      var resultat = video.play();
+
+      if (resultat && resultat.then) {
+        resultat.then(function () {
+
+          
+          if (inici.getAttribute('visible')) {
+            inici.setAttribute('visible', false);
+            menu.setAttribute('visible', true);
+          }
+
+          actualitzarPausa();
+
+        }).catch(function (error) {
+          console.error(
+            'No es pot reproduir el vídeo:',
+            error
+          );
+        });
+      }
+    }
+
+
+    // Botó d'inici
+    botoIniciar.addEventListener('click', function () {
+      reproduir();
+    });
+
+
+    // Pausar i reprendre
+    botoPausa.addEventListener('click', function () {
+
+      if (video.paused) {
+        reproduir();
+      } else {
+        video.pause();
+        actualitzarPausa();
+      }
+
+    });
+
+
+    // Reiniciar el vídeo
+    botoReiniciar.addEventListener('click', function () {
+      video.currentTime = 0;
+      reproduir();
+    });
+
+
+    function situarPanell() {
+      var posicio = new THREE.Vector3();
+      var orientacio = new THREE.Quaternion();
+
+      camera.object3D.updateMatrixWorld(true);
+
+      camera.object3D.getWorldPosition(posicio);
+      camera.object3D.getWorldQuaternion(orientacio);
+
+      var direccio = new THREE.Vector3(0, 0, -1);
+      direccio.applyQuaternion(orientacio);
+      direccio.multiplyScalar(3);
+
+      posicio.add(direccio);
+
+      panell.object3D.position.copy(posicio);
+      panell.object3D.quaternion.copy(orientacio);
+    }
+
+
+    function mostrarSeccio(nom) {
+      Object.keys(seccions).forEach(function (clau) {
+        seccions[clau].setAttribute(
+          'visible',
+          clau === nom
+        );
+      });
+    }
+
+
+    // Obrir la informació
+    botoInformacio.addEventListener('click', function () {
+      mostrarSeccio('llac');
+      situarPanell();
+
+      menu.setAttribute('visible', false);
+      panell.setAttribute('visible', true);
+    });
+
+
+    // Secció: el llac
+    document.querySelector('#tab-llac')
+      .addEventListener('click', function () {
+        mostrarSeccio('llac');
+      });
+
+
+    // Secció: vegetació
+    document.querySelector('#tab-vegetacio')
+      .addEventListener('click', function () {
+        mostrarSeccio('vegetacio');
+      });
+
+
+    // Secció: turisme
+    document.querySelector('#tab-turisme')
+      .addEventListener('click', function () {
+        mostrarSeccio('turisme');
+      });
+
+
+    // Tancar la informació
+    botoTancar.addEventListener('click', function () {
+      panell.setAttribute('visible', false);
+      menu.setAttribute('visible', true);
+    });
+
+
+    // Tornar a Blue Grotto
+    botoBlue.addEventListener('click', function () {
+      window.location.href = 'sky.html';
+    });
+
+
+    video.addEventListener('play', actualitzarPausa);
+    video.addEventListener('pause', actualitzarPausa);
+
+  </script>
+
+</body>
+</html>

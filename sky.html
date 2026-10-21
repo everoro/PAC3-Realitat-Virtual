@@ -1,0 +1,474 @@
+
+<!DOCTYPE html>
+<html lang="ca">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Blue Grotto | Explorant la natura</title>
+
+  <script src="https://aframe.io/releases/0.6.1/aframe.min.js"></script>
+
+  <script>
+    // Informació dels tres punts d'interès
+    var dades = {
+      cascada: {
+        numero: '01',
+        titol: 'La cascada',
+        text: "L'aigua en moviment pot erosionar les roques i transportar sediments, transformant el paisatge amb el pas del temps."
+      },
+
+      roques: {
+        numero: '02',
+        titol: 'Formacions rocoses',
+        text: "L'aigua i els canvis de temperatura contribueixen a la meteorització de les roques i poden modificar-ne la superfície."
+      },
+
+      vegetacio: {
+        numero: '03',
+        titol: 'La vegetació',
+        text: "La cobertura vegetal proporciona ombra, contribueix a regular la temperatura i la humitat del sòl i ofereix refugi a diferents organismes."
+      }
+    };
+
+    function escriureText(ctx, text, x, y, amplada, salt) {
+      var paraules = text.split(' ');
+      var linia = '';
+
+      for (var i = 0; i < paraules.length; i++) {
+        var prova = linia
+          ? linia + ' ' + paraules[i]
+          : paraules[i];
+
+        if (
+          ctx.measureText(prova).width > amplada &&
+          linia !== ''
+        ) {
+          ctx.fillText(linia, x, y);
+          y += salt;
+          linia = paraules[i];
+        } else {
+          linia = prova;
+        }
+      }
+
+      if (linia !== '') {
+        ctx.fillText(linia, x, y);
+      }
+    }
+
+    AFRAME.registerComponent('cartell-editorial', {
+      schema: {
+        tipus: {default: 'marcador'},
+        tema: {default: 'cascada'}
+      },
+
+      init: function () {
+        var tipus = this.data.tipus;
+        var info = dades[this.data.tema];
+
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+
+        var amplada3D;
+        var altura3D;
+
+        if (tipus === 'marcador') {
+          canvas.width = 256;
+          canvas.height = 256;
+
+          amplada3D = 0.5;
+          altura3D = 0.5;
+
+          // Marcador circular
+          ctx.clearRect(0, 0, 256, 256);
+
+          ctx.beginPath();
+          ctx.arc(128, 128, 110, 0, Math.PI * 2);
+
+          ctx.fillStyle = '#F2EFE7';
+          ctx.fill();
+
+          ctx.lineWidth = 12;
+          ctx.strokeStyle = '#607865';
+          ctx.stroke();
+
+          ctx.fillStyle = '#283C32';
+          ctx.font = '66px Georgia, serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          ctx.fillText(info.numero, 128, 133);
+
+        } else if (tipus === 'informacio') {
+          canvas.width = 1024;
+          canvas.height = 600;
+
+          amplada3D = 2.8;
+          altura3D = 1.64;
+
+          // Fons del panell
+          ctx.fillStyle = '#F2EFE7';
+          ctx.fillRect(0, 0, 1024, 600);
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#68796D';
+          ctx.font = 'bold 24px Arial, sans-serif';
+
+          ctx.fillText(
+            'EXPLORANT LA NATURA / ' + info.numero,
+            70,
+            92
+          );
+
+          // Títol
+          ctx.fillStyle = '#283C32';
+          ctx.font = '66px Georgia, serif';
+
+          ctx.fillText(info.titol, 70, 195);
+
+          // Línia separadora
+          ctx.fillStyle = '#B8C4B6';
+          ctx.fillRect(70, 229, 884, 3);
+
+          // Descripció
+          ctx.fillStyle = '#536156';
+          ctx.font = '36px Arial, sans-serif';
+
+          escriureText(
+            ctx,
+            info.text,
+            70,
+            305,
+            875,
+            54
+          );
+
+        } else {
+          // Botons de l'escena
+          canvas.width = 1024;
+          canvas.height = 256;
+
+          if (tipus === 'tancar') {
+            amplada3D = 0.65;
+            altura3D = 0.20;
+
+            ctx.fillStyle = '#283C32';
+            ctx.fillRect(0, 0, 1024, 256);
+
+            ctx.fillStyle = '#F2EFE7';
+            ctx.font = 'bold 72px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.fillText('TANCA', 512, 130);
+
+          } else if (tipus === 'navegacio') {
+            amplada3D = 1.65;
+            altura3D = 0.38;
+
+            ctx.fillStyle = '#F2EFE7';
+            ctx.fillRect(0, 0, 1024, 256);
+
+            ctx.fillStyle = '#283C32';
+            ctx.font = 'bold 60px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.fillText(
+              '02 — LLAC DE BLED →',
+              512,
+              130
+            );
+          }
+        }
+
+
+        var textura = new THREE.Texture(canvas);
+        textura.needsUpdate = true;
+        textura.minFilter = THREE.LinearFilter;
+        textura.magFilter = THREE.LinearFilter;
+
+        var geometria = new THREE.PlaneGeometry(
+          amplada3D,
+          altura3D
+        );
+
+        var material = new THREE.MeshBasicMaterial({
+          map: textura,
+          side: THREE.DoubleSide,
+          transparent: tipus === 'marcador',
+          depthWrite: tipus !== 'marcador'
+        });
+
+        var malla = new THREE.Mesh(
+          geometria,
+          material
+        );
+
+        this.el.setObject3D('mesh', malla);
+      },
+
+      remove: function () {
+        var malla = this.el.getObject3D('mesh');
+
+        if (malla) {
+          malla.material.map.dispose();
+          malla.material.dispose();
+          malla.geometry.dispose();
+          this.el.removeObject3D('mesh');
+        }
+      }
+    });
+
+    AFRAME.registerComponent('marcador-frontal', {
+      init: function () {
+        this.posicioCamera = new THREE.Vector3();
+        this.posicioMarcador = new THREE.Vector3();
+        this.camera = document.querySelector('#camera');
+      },
+
+      tick: function () {
+        if (!this.camera || !this.camera.object3D) {
+          return;
+        }
+
+        this.camera.object3D.getWorldPosition(
+          this.posicioCamera
+        );
+
+        this.el.object3D.getWorldPosition(
+          this.posicioMarcador
+        );
+
+        var diferenciaX =
+          this.posicioCamera.x - this.posicioMarcador.x;
+
+        var diferenciaZ =
+          this.posicioCamera.z - this.posicioMarcador.z;
+
+        var angle = Math.atan2(
+          diferenciaX,
+          diferenciaZ
+        );
+
+        this.el.object3D.rotation.set(0, angle, 0);
+      }
+    });
+  </script>
+</head>
+
+<body>
+
+  <a-scene>
+
+    <!-- Imatge panoràmica -->
+    <a-assets>
+      <img
+        id="panorama"
+        src="blue_grotto.jpg">
+    </a-assets>
+
+    <a-sky
+      id="imatge-360"
+      radius="10"
+      src="#panorama">
+    </a-sky>
+
+
+    <!-- Marcador 01: cascada -->
+    <a-entity
+      id="marcador-cascada"
+      class="interactiu"
+      position="-2.97 2.04 3.85"
+      cartell-editorial="tipus: marcador; tema: cascada"
+      marcador-frontal>
+    </a-entity>
+
+
+    <!-- Marcador 02: formacions rocoses -->
+    <a-entity
+      id="marcador-roques"
+      class="interactiu"
+      position="-1.13 1.36 -4.51"
+      cartell-editorial="tipus: marcador; tema: roques"
+      marcador-frontal>
+    </a-entity>
+
+
+    <!-- Marcador 03: vegetació -->
+    <a-entity
+      id="marcador-vegetacio"
+      class="interactiu"
+      position="4.92 3.23 0.88"
+      cartell-editorial="tipus: marcador; tema: vegetacio"
+      marcador-frontal>
+    </a-entity>
+
+
+    <!-- Panell informatiu -->
+    <a-entity
+      id="panell-vr"
+      visible="false">
+
+      <a-entity
+        id="text-cascada"
+        visible="false"
+        cartell-editorial="tipus: informacio; tema: cascada">
+      </a-entity>
+
+      <a-entity
+        id="text-roques"
+        visible="false"
+        cartell-editorial="tipus: informacio; tema: roques">
+      </a-entity>
+
+      <a-entity
+        id="text-vegetacio"
+        visible="false"
+        cartell-editorial="tipus: informacio; tema: vegetacio">
+      </a-entity>
+
+      <!-- Tancar la informació -->
+      <a-entity
+        id="tancar-vr"
+        class="interactiu"
+        position="0 -0.68 0.04"
+        cartell-editorial="tipus: tancar">
+      </a-entity>
+
+    </a-entity>
+
+
+    <!-- Navegació al llac de Bled -->
+    <a-entity
+      id="anar-bled"
+      class="interactiu"
+      position="0 0.65 -2.8"
+      cartell-editorial="tipus: navegacio">
+    </a-entity>
+
+
+    <!-- Càmera i cursor -->
+    <a-camera
+      id="camera"
+      position="0 1.6 0">
+
+      <a-cursor
+        id="cursor"
+        position="0 0 -1"
+        fuse="true"
+        fuse-timeout="1400"
+        raycaster="objects: .interactiu; far: 12"
+        geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.022"
+        material="color: #FFFFFF; shader: flat; depthTest: false">
+      </a-cursor>
+
+    </a-camera>
+
+  </a-scene>
+
+
+  <script>
+    // Elements de l'escena
+    var camera = document.querySelector('#camera');
+    var panell = document.querySelector('#panell-vr');
+    var botoBled = document.querySelector('#anar-bled');
+
+    var marcadors = document.querySelectorAll(
+      '#marcador-cascada, #marcador-roques, #marcador-vegetacio'
+    );
+
+    var textos = {
+      cascada: document.querySelector('#text-cascada'),
+      roques: document.querySelector('#text-roques'),
+      vegetacio: document.querySelector('#text-vegetacio')
+    };
+
+
+    function situarPanellDavant() {
+      var posicio = new THREE.Vector3();
+      var orientacio = new THREE.Quaternion();
+
+      camera.object3D.updateMatrixWorld(true);
+
+      camera.object3D.getWorldPosition(posicio);
+      camera.object3D.getWorldQuaternion(orientacio);
+
+      var direccio = new THREE.Vector3(0, 0, -1);
+      direccio.applyQuaternion(orientacio);
+      direccio.multiplyScalar(2.7);
+
+      posicio.add(direccio);
+
+      panell.object3D.position.copy(posicio);
+      panell.object3D.quaternion.copy(orientacio);
+    }
+
+
+    function mostrarInformacio(tipus) {
+      Object.keys(textos).forEach(function (nom) {
+        textos[nom].setAttribute(
+          'visible',
+          nom === tipus
+        );
+      });
+
+      situarPanellDavant();
+
+      panell.setAttribute('visible', true);
+      botoBled.setAttribute('visible', false);
+
+      marcadors.forEach(function (marcador) {
+        marcador.classList.remove('interactiu');
+      });
+    }
+
+    function tancarInformacio() {
+      panell.setAttribute('visible', false);
+      botoBled.setAttribute('visible', true);
+
+      marcadors.forEach(function (marcador) {
+        marcador.classList.add('interactiu');
+      });
+    }
+
+
+    // Marcador: cascada
+    document.querySelector('#marcador-cascada')
+      .addEventListener('click', function () {
+        mostrarInformacio('cascada');
+      });
+
+
+    // Marcador: roques
+    document.querySelector('#marcador-roques')
+      .addEventListener('click', function () {
+        mostrarInformacio('roques');
+      });
+
+
+    // Marcador: vegetació
+    document.querySelector('#marcador-vegetacio')
+      .addEventListener('click', function () {
+        mostrarInformacio('vegetacio');
+      });
+
+
+    // Tancar el panell
+    document.querySelector('#tancar-vr')
+      .addEventListener('click', function () {
+        tancarInformacio();
+      });
+
+
+    // Anar a la segona experiència
+    botoBled.addEventListener('click', function () {
+      window.location.href = 'videosphere.html';
+    });
+
+  </script>
+
+</body>
+</html>
