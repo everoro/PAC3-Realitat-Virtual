@@ -63,14 +63,7 @@
       },
 
       update: function () {
-        var anterior = this.el.getObject3D('mesh');
-
-        if (anterior) {
-          anterior.material.map.dispose();
-          anterior.material.dispose();
-          anterior.geometry.dispose();
-          this.el.removeObject3D('mesh');
-        }
+        
 
         var tipus = this.data.tipus;
         var canvas = document.createElement('canvas');
@@ -172,20 +165,37 @@
         textura.minFilter = THREE.LinearFilter;
         textura.magFilter = THREE.LinearFilter;
 
-        var geometria = new THREE.PlaneGeometry(
-          ample3D,
-          alt3D
-        );
+        
+var malla = this.el.getObject3D('mesh');
 
-        var material = new THREE.MeshBasicMaterial({
-          map: textura,
-          side: THREE.DoubleSide
-        });
+if (malla) {
+  
+  var texturaAnterior = malla.material.map;
 
-        this.el.setObject3D(
-          'mesh',
-          new THREE.Mesh(geometria, material)
-        );
+  malla.material.map = textura;
+  malla.material.needsUpdate = true;
+
+  if (texturaAnterior) {
+    texturaAnterior.dispose();
+  }
+
+} else {
+  
+  var geometria = new THREE.PlaneGeometry(
+    ample3D,
+    alt3D
+  );
+
+  var material = new THREE.MeshBasicMaterial({
+    map: textura,
+    side: THREE.DoubleSide
+  });
+
+            this.el.setObject3D(
+            'mesh',
+            new THREE.Mesh(geometria, material)
+          );
+        }
       },
 
       remove: function () {
